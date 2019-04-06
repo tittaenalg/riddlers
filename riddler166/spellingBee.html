@@ -1,0 +1,156 @@
+<!-- Can You Win A Spelling Bee If You Know 99 Percent Of The Words? -->
+
+<html>
+	<style>
+		table, tr, td, th {
+			text-align: center;
+			border: 1px solid black;
+			border-collapse: collapse;
+			padding: 5px;
+		}
+	</style>
+
+	<h1 id="header"></h1>
+	<table id="results"></table>
+	
+	<script>
+		// the functions
+		let shuffle = dict => {
+			for (let i = dict.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[dict[i], dict[j]] = [dict[j], dict[i]];
+			}
+			return dict;
+		}
+
+		let dictConstructor = () => {
+			let dict = [];
+			for (let i = 0; i < 100; i++) {
+				dict.push(i);
+			}
+  
+			return shuffle(dict);
+		}
+
+		class Speller {
+			constructor(dictSize) {
+				this.dictSize = dictSize,
+				this.alive = true,
+				this.dict = this.createDictionary()
+			}
+
+			get dictionary() {
+				return this.dict;
+			}
+
+			createDictionary() {
+				let dict = dictConstructor();
+    
+				for (let i = 0; i < 100 - this.dictSize; i++) {
+					dict.pop();
+				}
+
+				return dict;
+			}
+			
+			get stillIn() {
+				return this.alive;
+			}
+			
+			set stillIn(bool) {
+				this.alive = bool;
+			}
+		}
+
+		let makeSpellers = (numOfSpellers, order) => {
+			let spellers = new Array(numOfSpellers);
+			if (order === 'Desc') {
+				for (let i = 99; i > 99 - numOfSpellers; i--) {
+					const index = 99 - i;
+					spellers[index] = new Speller(i)
+				}	
+			} else if (order === 'Asc') {
+				for (let i = 90; i < 90 + numOfSpellers; i++) {
+					const index = i - 90;
+					spellers[index] = new Speller(i)
+				}
+			} else {
+				throw new Error('order must be asc or desc');
+			}
+			
+			return spellers;
+		}
+		
+		// setup the game
+		const masterDictionary = dictConstructor(100);
+		let round = 1;
+		const gamesToPlay = 100; //or whatever
+		const order = 'Desc' // or Asc
+		let spellerRecord = {
+			99: 0,
+			98: 0,
+			97: 0,
+			96: 0,
+			95: 0,
+			94: 0,
+			93: 0,
+			92: 0,
+			91: 0,
+			90: 0
+		}
+		
+		// simulate the games
+		for (let i = 0; i < gamesToPlay; i++) {
+			let spellers = makeSpellers(10, order);
+
+			let done = false;
+
+			while (!done) {
+				// run through a spelling round
+				spellers.map(speller => {
+					const word = masterDictionary[Math.floor(Math.random() * 99)];
+					speller.stillIn = speller.dictionary.includes(word);
+				})
+				
+				// redo round if everyone is eliminated
+				if (spellers.filter(speller => speller.stillIn === true).length === 0) {
+					spellers.map(speller => {
+						speller.stillIn = true
+					})
+				} else {
+					spellers = spellers.filter(speller => speller.stillIn === true)
+				}
+
+				// record results
+				if (spellers.length === 1) {
+					done = true;
+					spellerRecord[spellers[0].dictSize]++;
+				}
+			}
+		}
+		
+		// do html stuff to display results
+		let htmlResults = Object.keys(spellerRecord).map(
+			(key, index) => {
+				const winPercent = parseFloat((spellerRecord[key] / gamesToPlay * 100).toFixed(3));
+				return `<tr>
+							<td>${key}</td>
+							<td>${spellerRecord[key]}</td>
+							<td>${winPercent}</td>
+						</tr>`;
+			}
+		);
+		
+		htmlResults.unshift(
+			`<tr>
+				<th>% of Dict. Known</th>
+				<th>Wins</th> 
+				<th>Winning %</th>
+			</tr>`
+		);
+		
+		document.getElementById("results").innerHTML = htmlResults.join('');
+		
+		document.getElementById("header").innerHTML = `Speller Wins (Knowledge ${order})`
+	</script>
+</html>
